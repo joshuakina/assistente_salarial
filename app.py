@@ -210,7 +210,7 @@ if st.button("Calcular Perda de Poder de Compra (Simulando Tool/MCP)"):
         with col_c:
             st.metric("Perda de Poder de Compra", f"R$ {perda_estimada:.2f}", delta_color="inverse")
             
-        st.info(f"💡 **Resposta da IA (Simulação LLM 0.5B):** "
+        st.info(
                 f"Com base nos dados oficiais do Banco Central (IPCA), nos últimos {meses_atras} meses "
                 f"a inflação acumulada foi de **{inflacao_acumulada_pct:.2f}%**. "
                 f"Isso significa que para comprar exatamente as mesmas coisas que você comprava antes com seus **R$ {salario_usuario:.2f}**, "
