@@ -5,7 +5,12 @@ import requests
 
 # Função para buscar dados da API do BACEN
 def buscar_dados_bacen(codigo, data_inicio, data_fim):
-    """Busca dados de uma série temporal do Banco Central"""
+    """Busca dados de uma série temporal do Banco Central
+        Taxa SELIC (% a.m.): 432,
+        IPCA - Inflação (% a.m.)" 433,
+        PIB (% acumulado 4 trimestres): 4389,
+        Taxa de Desocupação (%): 24369
+    """
     url = f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados"
     params = {
         "formato": "json",
