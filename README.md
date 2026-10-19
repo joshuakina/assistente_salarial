@@ -1,204 +1,274 @@
 # Assistente Salarial Inteligente
 
-Aplicação web didática que estima como a inflação acumulada afeta o poder de
-compra de um salário. A pessoa informa o salário atual e há quantos meses não
-recebe reajuste; ao clicar no botão, o programa consulta dados mensais do IPCA
-na API do Banco Central do Brasil (BCB) e apresenta uma estimativa de salário
-necessário para comprar hoje o equivalente ao que esse salário comprava no
-início do período.
+## Introdução
 
-> **Importante:** esta é uma simulação educativa, não uma recomendação
-> financeira, trabalhista ou jurídica. O resultado não determina reajuste
-> obrigatório, aumento devido, salário de mercado nem a inflação pessoal de
-> cada pessoa.
+Este programa mostra quanto o seu salário perdeu de valor por causa da inflação.
 
-## O que a aplicação faz
+Você informa:
 
-1. Mostra um campo para informar o salário atual em reais.
-2. Permite escolher um período de 1 a 60 meses sem reajuste.
-3. Quando o botão é acionado, busca as observações mensais da série 433 do
-   Sistema Gerenciador de Séries Temporais (SGS) do Banco Central.
-4. Com essas observações, calcula a inflação acumulada por composição
-   (inflação sobre inflação).
-5. Exibe a inflação acumulada, o salário estimado para preservar o poder de
-   compra e a diferença em relação ao salário informado.
+- o valor do seu salário atual;  
+- há quantos meses ele está sem reajuste.
 
-Os dados são consultados quando o botão é clicado. O IPCA é divulgado
-periodicamente e pode não ter um valor publicado para o mês mais recente.
-Portanto, “dados em tempo real” não significa necessariamente que exista um
-índice para todos os meses até hoje.
+O programa busca a inflação oficial do Brasil (índice **IPCA**) no site do **Banco Central** e calcula:
 
-## Conceitos financeiros em linguagem simples
+- a inflação acumulada no período;  
+- o salário que você precisaria ganhar hoje para manter o mesmo poder de compra;  
+- quanto você perdeu em reais.
 
-- **Inflação:** aumento generalizado dos preços ao longo do tempo. Quando os
-  preços sobem, a mesma quantia de dinheiro costuma comprar menos.
-- **IPCA:** Índice Nacional de Preços ao Consumidor Amplo. É um indicador de
-  inflação calculado pelo IBGE e usado como referência oficial para acompanhar
-  a variação de preços no Brasil. A série 433 consultada pelo programa contém
-  a variação mensal do IPCA, em porcentagem.
-- **Poder de compra:** quantidade de bens e serviços que uma quantia permite
-  comprar. Se os preços aumentam e a renda não muda, o poder de compra tende
-  a diminuir.
-- **Salário nominal:** valor em reais que aparece no pagamento, sem descontar
-  o efeito da inflação.
-- **Salário necessário para reposição:** estimativa do valor que, após a
-  inflação do período, compraria uma cesta equivalente à que o salário
-  informado comprava no começo daquele período. Não é necessariamente um
-  reajuste concedido ou garantido.
-- **Inflação composta:** as variações mensais são multiplicadas, e não apenas
-  somadas. Por exemplo, dois meses com inflação de 1% resultam em
-  `(1 + 1/100) × (1 + 1/100) - 1 = 2,01%` de inflação acumulada.
-- **BCB/BACEN:** Banco Central do Brasil, instituição responsável, entre
-  outras atividades, por manter e disponibilizar séries de dados econômicos.
-- **SGS:** Sistema Gerenciador de Séries Temporais do Banco Central, de onde a
-  API usada pelo programa fornece os valores históricos.
+O programa abre como uma página web simples, com campos para preencher e um botão para calcular.
 
-### Como interpretar o resultado
-
-Se o salário informado for R$ 1.000,00 e a inflação encontrada no período for
-10%, a estimativa de reposição será R$ 1.100,00. A diferença de R$ 100,00 é
-mostrada como perda estimada de poder de compra em reais por mês em relação ao
-salário informado.
-
-É uma aproximação baseada no IPCA geral. A inflação sentida por uma família
-pode ser diferente, porque seus gastos e hábitos de consumo podem não ser
-iguais à composição média do índice. O cálculo também depende das observações
-mensais que a API retornar para as datas selecionadas.
-
-## Como o código funciona
-
-O programa está concentrado em [`app.py`](./app.py).
-
-### Bibliotecas importadas
-
-- **Streamlit (`streamlit`):** cria a página web e seus componentes, como
-  campos, botão, mensagens e indicadores.
-- **Pandas (`pandas`):** organiza os dados retornados pela API em uma tabela e
-  ajuda a converter datas e números.
-- **Plotly Express (`plotly.express`):** biblioteca para criar gráficos. Está
-  importada no código, mas atualmente não é utilizada; a aplicação não exibe
-  gráficos.
-- **Requests (`requests`):** envia uma solicitação HTTP para a API do Banco
-  Central.
-
-### Busca de dados: `buscar_dados_bacen`
-
-A função recebe um código de série e duas datas:
-
-1. Monta o endereço da API SGS com o código recebido.
-2. Envia as datas inicial e final e pede a resposta no formato JSON.
-3. Se a resposta HTTP for bem-sucedida (código 200), transforma os registros
-   recebidos em uma tabela Pandas.
-4. Converte a coluna de data do formato `dia/mês/ano` para datas reconhecidas
-   pelo programa e a coluna de valor para número.
-5. Retorna a tabela. Se o servidor responder com um código diferente de 200,
-   exibe uma mensagem de erro e retorna `None`.
-
-O código menciona estas séries em uma descrição da função:
-
-| Código SGS | Indicador descrito no código | Uso nesta versão |
-|---|---|---|
-| 432 | Taxa SELIC (% ao mês) | Apenas mencionado; não é consultado pela interface |
-| 433 | IPCA (% ao mês) | Consultado pelo simulador |
-| 4389 | PIB (% acumulado em quatro trimestres) | Apenas mencionado; não é consultado pela interface |
-| 24369 | Taxa de desocupação (%) | Apenas mencionado; não é consultado pela interface |
-
-### Interface e cálculo
-
-- `st.title` e `st.write` exibem o título e a apresentação.
-- `st.divider` e `st.subheader` separam e identificam a área do simulador.
-- `st.number_input` recebe o salário. Nesta versão, o mínimo é R$ 100,00, o
-  valor inicial é R$ 1.000,00 e o passo dos botões é R$ 100,00.
-- `st.slider` escolhe o período entre 1 e 60 meses. O valor inicial é 24.
-- O bloco `if st.button(...)` só executa a consulta e o cálculo depois que a
-  pessoa clica no botão.
-- `pd.Timestamp.today()` obtém a data atual e `pd.DateOffset` calcula uma
-  data aproximada de início do período. As datas são formatadas como
-  `dia/mês/ano` para a API.
-- O programa busca a série 433. Se a tabela recebida existir e não estiver
-  vazia, calcula o fator acumulado multiplicando `(1 + valor mensal / 100)`
-  para cada observação e subtraindo 1 ao final.
-- Multiplica o salário pelo fator acumulado mais 1 para estimar o salário de
-  reposição; subtrai o salário original para obter a diferença estimada.
-- `st.success`, `st.columns`, `st.metric` e `st.info` apresentam os valores.
-  Se não houver observações utilizáveis, `st.error` informa que não foi
-  possível fazer o cálculo.
-
-### Siglas e termos de programação
-
-- **API (Application Programming Interface):** uma forma padronizada para um
-  programa solicitar dados ou serviços de outro. Aqui, o aplicativo pede
-  dados ao Banco Central.
-- **HTTP:** protocolo usado para a comunicação entre aplicações na web. Uma
-  resposta com código `200` indica que a solicitação foi atendida com sucesso.
-- **JSON (JavaScript Object Notation):** formato textual comum para troca de
-  dados entre sistemas. A API devolve os registros nesse formato.
-- **DataFrame:** tabela de dados do Pandas, com linhas e colunas.
-- **`None`:** valor especial do Python que representa ausência de um objeto
-  de resultado, usado aqui quando a resposta HTTP não é bem-sucedida.
-- **`if`:** estrutura condicional; executa um bloco apenas quando uma
-  condição é verdadeira.
-- **Função:** trecho de código nomeado e reutilizável. Neste caso,
-  `buscar_dados_bacen` concentra a consulta e a preparação dos dados.
-
-## MCP e LLM: o que está simulado
-
-O título de uma seção do código menciona **MCP** e **LLM**:
-
-- **MCP (Model Context Protocol):** protocolo para conectar modelos de
-  inteligência artificial a ferramentas e fontes de contexto.
-- **LLM (Large Language Model, ou grande modelo de linguagem):** modelo de
-  inteligência artificial treinado para compreender e gerar texto.
-
-Apesar desses nomes aparecerem no título e no texto do botão, a implementação
-atual **não se conecta a um servidor MCP nem a um LLM**. O botão chama
-diretamente a função Python que consulta a API do Banco Central e calcula os
-valores. Portanto, “simulando MCP” é apenas uma descrição da interface, não
-uma integração implementada.
+---
 
 ## Requisitos
 
-- Python instalado no computador.
-- Acesso à internet para consultar a API do Banco Central.
-- As bibliotecas Python `streamlit`, `pandas`, `plotly` e `requests`.
+Para usar o programa, você precisa de:
 
-Este repositório não inclui atualmente um arquivo de dependências como
-`requirements.txt`; a instalação abaixo informa explicitamente as bibliotecas
-usadas pelo código.
+- **Python 3.9 ou mais novo** (linguagem em que o programa foi escrito) → [https\://www\.python.org/downloads/](https://www.python.org/downloads/)
 
-## Instalação e execução no Windows
+Para conferir se o Python e o Git estão instalados, abra o terminal e digite:
 
-Abra o PowerShell na pasta do projeto e execute:
+```sh
+python --version
+```
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install streamlit pandas plotly requests
+&nbsp;
+
+Se aparecer um número de versão nos dois, está tudo certo.
+
+---
+
+## Como montar o ambiente
+
+Siga os passos na ordem.
+
+**Passo 1\.** Crie uma pasta para o projeto e entre nela:
+
+```sh
+mkdir assistente-salarial
+cd assistente-salarial
+```
+
+&nbsp;
+
+**Passo 2\.** Salve o código do programa nesta pasta com o nome `app.py`.
+
+**Passo 3\.** Crie um ambiente virtual (um espaço isolado só para este projeto, que evita conflitos com outros programas Python do seu computador):
+
+```sh
+python -m venv venv
+```
+
+&nbsp;
+
+**Passo 4\.** Ative o ambiente virtual:
+
+- Windows:
+
+```sh
+venv\Scripts\activate
+```
+
+- Mac ou Linux:
+
+```sh
+source venv/bin/activate
+```
+
+Quando funcionar, aparecerá `(venv)` no início da linha do terminal.
+
+**Passo 5\.** Instale as bibliotecas necessárias (ver seção 5):
+
+## Arquivo requirements.txt
+
+```
+streamlit
+pandas
+requests
+```
+
+&nbsp;
+
+O que cada biblioteca faz:
+
+| Biblioteca | Função |
+| :---- | :---- |
+| `streamlit` | Cria a página web com campos, botão e resultados |
+| `pandas` | Organiza os dados em tabela e faz os cálculos |
+| `requests` | Faz a consulta à internet para buscar os dados do Banco Central |
+
+&nbsp;
+
+---
+
+```sh
+pip install -r requirements.txt
+```
+
+&nbsp;
+
+**Passo 6\.** Execute o programa:
+
+```sh
 streamlit run app.py
 ```
 
-O Streamlit abrirá a aplicação no navegador. Se a ativação do ambiente virtual
-for bloqueada pela política do PowerShell, consulte a política configurada no
-seu computador ou execute os comandos de instalação e execução com o Python
-do ambiente virtual sem ativá-lo:
+&nbsp;
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install streamlit pandas plotly requests
-.\.venv\Scripts\streamlit.exe run app.py
+O navegador abrirá automaticamente. Se não abrir, acesse: [http\://localhost:8501](http://localhost:8501)
+
+Para fechar o programa, volte ao terminal e pressione `Ctrl + C`.
+
+---
+
+## Explicação do código
+
+O código tem três partes.
+
+### Parte 1: Importações
+
+Carrega as três bibliotecas descritas do requirements.
+
+### Parte 2: Função `buscar_dados_bacen`
+
+Responsável por buscar dados no Banco Central.
+
+1. Recebe três informações: o **código da série**, a **data inicial** e a **data final**.  
+2. Monta o endereço da API do Banco Central com esses dados.  
+3. Faz a consulta pela internet.  
+4. Se a consulta der certo, transforma a resposta em tabela, converte a coluna `data` para formato de data e a coluna `valor` para número.  
+5. Se der errado, mostra uma mensagem de erro na tela.
+
+Códigos de séries do Banco Central citados no código:
+
+| Código | Indicador |
+| :---- | :---- |
+| 432 | Taxa Selic (% ao mês) |
+| 433 | IPCA, a inflação (% ao mês) |
+| 4389 | PIB (% acumulado em 4 trimestres) |
+| 24369 | Taxa de desocupação (%) |
+
+&nbsp;
+
+Neste programa, apenas o código **433 (IPCA)** é usado.
+
+### Parte 3: Tela e cálculo
+
+1. **Título e texto**: mostram o nome do programa e uma breve descrição.  
+2. **Campo de salário**: aceita valor mínimo de R$100,00,comvalorinicialdeR$ 1.000,00.  
+3. **Controle deslizante**: permite escolher de 1 a 60 meses sem reajuste, com valor inicial de 24\.  
+4. **Botão "Calcular Perda de Poder de Compra"**: ao ser clicado, executa os passos abaixo.  
+   1. Define a data final como o dia de hoje.  
+   2. Define a data inicial subtraindo os meses escolhidos da data de hoje.  
+   3. Busca o IPCA mensal desse período.  
+   4. Calcula a inflação acumulada (ver seção 8).  
+   5. Calcula o salário necessário e a perda em reais.  
+   6. Exibe três indicadores e um texto explicativo.  
+   7. Se não houver dados, mostra uma mensagem de erro.
+
+---
+
+## 7\. O que o código faz (passo a passo para o usuário)
+
+1. Você abre a página do programa.  
+2. Digita o seu salário atual.  
+3. Escolhe há quantos meses está sem reajuste.  
+4. Clica no botão de calcular.  
+5. O programa consulta o Banco Central.  
+6. A tela mostra três resultados:  
+   - **Inflação Acumulada no Período**: o quanto os preços subiram em porcentagem.  
+   - **Salário Necessário para Repor**: quanto você precisaria ganhar hoje para comprar o mesmo que comprava antes.  
+   - **Perda de Poder de Compra**: a diferença, em reais, entre o salário necessário e o salário que você tem.  
+7. Um texto final resume os resultados em linguagem simples.
+
+**Limitações importantes:**
+
+- O IPCA de um mês só é divulgado no mês seguinte. Por isso, o período calculado pode não incluir o mês mais recente.  
+- O resultado é uma **estimativa** baseada na média de preços do país. A inflação que você sente pode ser diferente, dependendo do que você consome.  
+- O programa precisa de internet. Sem conexão, ou se o site do Banco Central estiver fora do ar, o cálculo não funciona.
+
+---
+
+## 8\. Conceitos financeiros explicados
+
+### Inflação
+
+É o aumento geral dos preços de produtos e serviços ao longo do tempo. Quando há inflação, com o mesmo dinheiro você compra menos coisas.
+
+### IPCA
+
+Sigla de **Índice Nacional de Preços ao Consumidor Amplo**. É o índice oficial de inflação do Brasil, calculado pelo IBGE. O Banco Central disponibiliza os valores mensais na série de código 433\. Cada valor mostra quanto os preços subiram naquele mês, em porcentagem.
+
+### Poder de compra
+
+É a quantidade de produtos e serviços que você consegue comprar com o seu dinheiro. Se os preços sobem e o salário continua igual, o poder de compra diminui.
+
+### Reajuste salarial
+
+É o aumento do salário. Um reajuste igual à inflação mantém o poder de compra. Um reajuste menor que a inflação, ou nenhum reajuste, reduz o poder de compra.
+
+### Inflação acumulada
+
+É o aumento total dos preços em vários meses seguidos. Ela **não é a soma** das inflações de cada mês. Cada mês é calculado sobre os preços já reajustados no mês anterior. Esse método é chamado de **cálculo composto**.
+
+Fórmula usada no código:
+
+```
+Inflação acumulada = (1 + i1/100) × (1 + i2/100) × ... × (1 + in/100) − 1
 ```
 
-## Limitações conhecidas
+&nbsp;
 
-- Só o IPCA (série 433) é usado no cálculo apresentado.
-- Os demais indicadores listados no código não aparecem como opções nem são
-  exibidos pela interface atual.
-- Não há gráficos na interface, apesar de Plotly estar importado.
-- Não há integração com MCP ou LLM.
-- A estimativa usa o índice geral de preços, não os gastos individuais da
-  pessoa.
-- O intervalo é aproximado a partir da data atual e da quantidade de meses; a
-  disponibilidade e o período efetivo dependem das observações mensais
-  devolvidas pela API.
-- O aplicativo precisa de conexão com a internet para consultar os dados.
-- A consulta HTTP não define um tempo limite e erros de conexão podem
-  interromper a execução, pois a versão atual não trata exceções de rede.
+Onde `i1, i2, ..., in` são os IPCAs de cada mês.
+
+**Exemplo:** dois meses com inflação de 0,50% e 0,40%.
+
+- Soma simples: 0,50 \+ 0,40 \= 0,90%  
+- Cálculo composto: 1,005 × 1,004 \= 1,00902, ou seja, **0,902%**
+
+A diferença é pequena em poucos meses, mas cresce em períodos longos.
+
+### Salário necessário para repor
+
+É o salário atual corrigido pela inflação acumulada:
+
+```
+Salário necessário = Salário atual × (1 + inflação acumulada)
+```
+
+&nbsp;
+
+**Exemplo:** salário de R$1.000,00 e inflação acumuladade 10%.Salário necessário = 1.000 × 1,10 = **R$ 1.100,00\*\*
+
+### Perda de poder de compra
+
+É a diferença entre o salário necessário e o salário atual:
+
+```
+Perda = Salário necessário − Salário atual
+```
+
+&nbsp;
+
+No exemplo acima: 1.100 − 1.000 \= **R\$ 100,00**. Esse é o valor que falta no seu salário para comprar o mesmo que você comprava antes.
+
+### Selic, PIB e desocupação (citados no código)
+
+Esses indicadores aparecem apenas como referência nos comentários da função e **não entram no cálculo atual**:
+
+- **Selic**: taxa básica de juros da economia, definida pelo Banco Central.  
+- **PIB**: soma de tudo o que o país produz, usada para medir o crescimento da economia.  
+- **Taxa de desocupação**: porcentagem de pessoas que procuram trabalho e não encontram.
+
+---
+
+## Estrutura final do projeto
+
+```
+assistente-salarial/
+├── app.py
+├── requirements.txt
+├── README.md
+└── .gitignore
+```
+
+&nbsp;
