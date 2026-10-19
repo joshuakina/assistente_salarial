@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import requests
 
 # Função para buscar dados da API do BACEN
@@ -32,19 +31,12 @@ def buscar_dados_bacen(codigo, data_inicio, data_fim):
 
 # Título principal
 st.title("Assistente Salarial Inteligente")
-st.write("Análise da variação do seu poder de compra com base nos indicadores econômicos do BACEN")
-
-# ==============================================================================
-# NOVO RECURSO: Simulador de Impacto Salarial via MCP / LLM Local (IPCA)
-# ==============================================================================
-st.divider()
-st.subheader("🤖 Assistente Econômico Inteligente (Simulação MCP + LLM)")
 st.write("Simule o impacto da inflação (IPCA do Banco Central) no seu poder de compra com base em tempo real.")
 
 salario_usuario = st.number_input("Digite o valor do seu salário atual (R$):", min_value=100.0, value=1000.0, step=100.0)
 meses_atras = st.slider("Há quantos meses seu salário está sem reajuste?", min_value=1, max_value=60, value=24)
 
-if st.button("Calcular Perda de Poder de Compra (Simulando Tool/MCP)"):
+if st.button("Calcular Perda de Poder de Compra"):
     # Calcula data de início aproximada baseada nos meses escolhidos
     data_fim_calc = pd.Timestamp.today()
     data_inicio_calc = data_fim_calc - pd.DateOffset(months=meses_atras)
@@ -61,7 +53,7 @@ if st.button("Calcular Perda de Poder de Compra (Simulando Tool/MCP)"):
         salario_necessario = salario_usuario * (1 + fator_acumulado)
         perda_estimada = salario_necessario - salario_usuario
         
-        st.success("Dados obtidos com sucesso via API do Banco Central (Simulando MCP)!")
+        st.success("Dados obtidos com sucesso via API do Banco Central")
         
         col_a, col_b, col_c = st.columns(3)
         with col_a:
@@ -74,7 +66,7 @@ if st.button("Calcular Perda de Poder de Compra (Simulando Tool/MCP)"):
         st.info(
                 f"Com base nos dados oficiais do Banco Central (IPCA), nos últimos {meses_atras} meses "
                 f"a inflação acumulada foi de **{inflacao_acumulada_pct:.2f}%**. "
-                f"Isso significa que para comprar exatamente as mesmas coisas que você comprava antes com seus **R$ {salario_usuario:.2f}**, "
-                f"hoje você precisaria ganhar **R$ {salario_necessario:.2f}**. Na prática, houve uma perda de poder de compra de **R$ {perda_estimada:.2f}** por mês.")
+                f"Isso significa que para comprar exatamente as mesmas coisas que você comprava antes com seus **{salario_usuario:.2f} reais**, "
+                f"hoje você precisaria ganhar **{salario_necessario:.2f} reais**. Na prática, houve uma perda de poder de compra de **{perda_estimada:.2f} Reais** por mês.")
     else:
         st.error("Não foi possível calcular o índice para o período selecionado.")
